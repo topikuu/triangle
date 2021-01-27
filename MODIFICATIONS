@@ -1,0 +1,3 @@
+Command line argument "-z" has been added. This argument disables attribute
+interpolation when new edges are created. Instead min() of the values is
+taken. Corresponding modifications has been made to README.

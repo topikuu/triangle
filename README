@@ -51,6 +51,7 @@ free, then you are not required to make any arrangement with me.)
 The files included in this distribution are:
 
   README           The file you're reading now.
+  MODIFICATIONS    List of changes to the original Triangle
   triangle.c       Complete C source code for Triangle.
   showme.c         Complete C source code for Show Me.
   triangle.h       Include file for calling Triangle from another program.

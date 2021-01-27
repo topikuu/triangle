@@ -775,6 +775,7 @@ struct behavior {
 /*   quiet: -Q switch.  verbose: count of how often -V switch is selected.   */
 /*   usesegments: -p, -r, -q, or -c switch; determines whether segments are  */
 /*     used at all.                                                          */
+/*   noattribinterp: -Z switch. Disable attribute interpolation.             */
 /*                                                                           */
 /* Read the instructions to find out the meaning of these switches.          */
 
@@ -792,6 +793,7 @@ struct behavior {
   int order;
   int nobisect;
   int steiner;
+  int noattribinterp;
   REAL minangle, goodangle, offconstant;
   REAL maxarea;
 
@@ -1511,6 +1513,7 @@ void syntax()
   printf("    -X  Suppresses use of exact arithmetic.\n");
   printf("    -z  Numbers all items starting from zero (rather than one).\n");
   printf("    -o2 Generates second-order subparametric elements.\n");
+  printf("    -Z  Do not interpolate attributes. Always use lower value.\n");
 #ifndef CDT_ONLY
   printf("    -Y  Suppresses boundary segment splitting.\n");
   printf("    -S  Specifies maximum number of added Steiner points.\n");
@@ -3318,6 +3321,7 @@ struct behavior *b;
   b->minangle = 0.0;
   b->maxarea = -1.0;
   b->quiet = b->verbose = 0;
+  b->noattribinterp = 0;
 #ifndef TRILIBRARY
   b->innodefilename[0] = '\0';
 #endif /* not TRILIBRARY */
@@ -3419,6 +3423,9 @@ struct behavior *b;
 	}
         if (argv[i][j] == 'E') {
           b->noelewritten = 1;
+	}
+	if (argv[i][j] == 'Z') {
+	  b->noattribinterp = 1;
 	}
 #ifndef TRILIBRARY
         if (argv[i][j] == 'I') {
@@ -11736,6 +11743,9 @@ vertex endpoint2;
   /* Interpolate its coordinate and attributes. */
   for (i = 0; i < 2 + m->nextras; i++) {
     newvertex[i] = torg[i] + split * (tdest[i] - torg[i]);
+    if (i >= 2 && b->noattribinterp) {
+      newvertex[i] = fmin(torg[i], tdest[i]);
+    }
   }
   setvertexmark(newvertex, mark(*splitsubseg));
   setvertextype(newvertex, INPUTVERTEX);
@@ -11926,6 +11936,9 @@ int newmark;
   /* Interpolate coordinates and attributes. */
   for (i = 0; i < 2 + m->nextras; i++) {
     newvertex[i] = 0.5 * (endpoint1[i] + endpoint2[i]);
+    if (i >= 2 && b->noattribinterp) {
+      newvertex[i] = fmin(endpoint1[i], endpoint2[i]);
+    }
   }
   setvertexmark(newvertex, newmark);
   setvertextype(newvertex, SEGMENTVERTEX);
@@ -13373,6 +13386,9 @@ int triflaws;
         /* Interpolate its coordinate and attributes. */
         for (i = 0; i < 2 + m->nextras; i++) {
           newvertex[i] = eorg[i] + split * (edest[i] - eorg[i]);
+          if (i >= 2 && b->noattribinterp) {
+            newvertex[i] = fmin(eorg[i], edest[i]);
+          }
         }
 
         if (!b->noexact) {
@@ -13535,6 +13551,9 @@ struct badtriang *badtri;
         /* Interpolate the vertex attributes at the circumcenter. */
         newvertex[i] = borg[i] + xi * (bdest[i] - borg[i])
                               + eta * (bapex[i] - borg[i]);
+        if (i >= 2 && b->noattribinterp) {
+          newvertex[i] = fmin(bdest[i], borg[i]);
+        }
       }
       /* The new vertex must be in the interior, and therefore is a */
       /*   free vertex with a marker of zero.                       */
@@ -13755,6 +13774,9 @@ struct behavior *b;
         newvertex = (vertex) poolalloc(&m->vertices);
         for (i = 0; i < 2 + m->nextras; i++) {
           newvertex[i] = 0.5 * (torg[i] + tdest[i]);
+          if (i >= 2 && b->noattribinterp) {
+            newvertex[i] = fmin(torg[i], tdest[i]);
+          }
         }
         /* Set the new node's marker to zero or one, depending on */
         /*   whether it lies on a boundary.                       */
@@ -14979,6 +15001,7 @@ char **argv;
 #endif /* not TRILIBRARY */
   struct otri triangleloop, trisym;
   vertex torg, tdest, tapex;
+  REAL printvalue;
   REAL circumcenter[2];
   REAL xi, eta;
   long vnodenumber, vedgenumber;
@@ -15036,6 +15059,9 @@ char **argv;
       /* Interpolate the vertex attributes at the circumcenter. */
       palist[attribindex++] = torg[i] + xi * (tdest[i] - torg[i])
                                      + eta * (tapex[i] - torg[i]);
+      if (i >= 2 && b->noattribinterp) {
+        palist[attribindex] = fmin(torg[i], tdest[i]);
+      }
     }
 #else /* not TRILIBRARY */
     /* Voronoi vertex number, x and y coordinates. */
@@ -15043,6 +15069,11 @@ char **argv;
             circumcenter[1]);
     for (i = 2; i < 2 + m->nextras; i++) {
       /* Interpolate the vertex attributes at the circumcenter. */
+      printvalue = torg[i] + xi * (tdest[i] - torg[i])
+                                         + eta * (tapex[i] - torg[i]);
+      if (b->noattribinterp) {
+        printvalue = fmin(torg[i], tdest[i]);
+      }
       fprintf(outfile, "  %.17g", torg[i] + xi * (tdest[i] - torg[i])
                                          + eta * (tapex[i] - torg[i]));
     }
